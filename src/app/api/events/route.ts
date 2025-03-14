@@ -102,14 +102,6 @@ export async function GET(request: NextRequest) {
           status = data[i + 2][statusIndex];
         }
         
-        // Find the event deleted flag if it exists in the headers
-        const deletedIndex = headers.findIndex(h => h === 'EventDeleted');
-        let deleted = false; // Default to not deleted
-        
-        if (deletedIndex !== -1 && data[i + 2] && data[i + 2][deletedIndex]) {
-          deleted = data[i + 2][deletedIndex] === 'true';
-        }
-        
         events.push({
           id: eventName,
           name: eventName,
@@ -118,7 +110,6 @@ export async function GET(request: NextRequest) {
           registrations: 0, // We'll calculate this later
           companyStatus: company ? (company[5] || 'enabled') : 'enabled',
           companyDeleted: company ? (company[6] === 'true') : false,
-          deleted: deleted,
         });
       }
     }
@@ -199,7 +190,6 @@ export async function POST(request: NextRequest) {
       'Registration Date',
       'Image', // For the event banner
       'EventStatus', // enabled or disabled
-      'EventDeleted', // true or false
     ];
     
     // Create the event table in the company sheet
@@ -243,18 +233,18 @@ export async function PUT(request: NextRequest) {
     }
 
     // Parse request body
-    const { companyName, eventName, status, deleted } = await request.json();
+    const { companyName, eventName, status } = await request.json();
     
     // Validate required fields
-    if (!companyName || !eventName) {
+    if (!companyName || !eventName || !status) {
       return NextResponse.json(
-        { error: 'Company name and event name are required' },
+        { error: 'Company name, event name, and status are required' },
         { status: 400 }
       );
     }
     
-    // Check if status is valid when provided
-    if (status && status !== 'enabled' && status !== 'disabled') {
+    // Check if status is valid
+    if (status !== 'enabled' && status !== 'disabled') {
       return NextResponse.json(
         { error: 'Status must be either "enabled" or "disabled"' },
         { status: 400 }
@@ -297,57 +287,27 @@ export async function PUT(request: NextRequest) {
       );
     }
     
-    // Update status if provided
-    if (status) {
-      // Find the EventStatus column index
-      const statusIndex = headersRow.findIndex(h => h === 'EventStatus');
-      
-      // If EventStatus column doesn't exist, add it
-      if (statusIndex === -1) {
-        // Add EventStatus to headers
-        headersRow.push('EventStatus');
-        await updateRow(companyName, eventIndex + 1, headersRow);
-        
-        // Update the first data row with the status if it exists
-        if (data[eventIndex + 2]) {
-          const firstDataRow = [...data[eventIndex + 2]];
-          firstDataRow.push(status);
-          await updateRow(companyName, eventIndex + 2, firstDataRow);
-        }
-      } else {
-        // Update the first data row with the status if it exists
-        if (data[eventIndex + 2]) {
-          const firstDataRow = [...data[eventIndex + 2]];
-          firstDataRow[statusIndex] = status;
-          await updateRow(companyName, eventIndex + 2, firstDataRow);
-        }
-      }
-    }
+    // Find the EventStatus column index
+    const statusIndex = headersRow.findIndex(h => h === 'EventStatus');
     
-    // Update deleted flag if provided
-    if (typeof deleted === 'boolean') {
-      // Find the EventDeleted column index
-      const deletedIndex = headersRow.findIndex(h => h === 'EventDeleted');
+    // If EventStatus column doesn't exist, add it
+    if (statusIndex === -1) {
+      // Add EventStatus to headers
+      headersRow.push('EventStatus');
+      await updateRow(companyName, eventIndex + 1, headersRow);
       
-      // If EventDeleted column doesn't exist, add it
-      if (deletedIndex === -1) {
-        // Add EventDeleted to headers
-        headersRow.push('EventDeleted');
-        await updateRow(companyName, eventIndex + 1, headersRow);
-        
-        // Update the first data row with the deleted flag if it exists
-        if (data[eventIndex + 2]) {
-          const firstDataRow = [...data[eventIndex + 2]];
-          firstDataRow.push(deleted ? 'true' : 'false');
-          await updateRow(companyName, eventIndex + 2, firstDataRow);
-        }
-      } else {
-        // Update the first data row with the deleted flag if it exists
-        if (data[eventIndex + 2]) {
-          const firstDataRow = [...data[eventIndex + 2]];
-          firstDataRow[deletedIndex] = deleted ? 'true' : 'false';
-          await updateRow(companyName, eventIndex + 2, firstDataRow);
-        }
+      // Update the first data row with the status if it exists
+      if (data[eventIndex + 2]) {
+        const firstDataRow = [...data[eventIndex + 2]];
+        firstDataRow.push(status);
+        await updateRow(companyName, eventIndex + 2, firstDataRow);
+      }
+    } else {
+      // Update the first data row with the status if it exists
+      if (data[eventIndex + 2]) {
+        const firstDataRow = [...data[eventIndex + 2]];
+        firstDataRow[statusIndex] = status;
+        await updateRow(companyName, eventIndex + 2, firstDataRow);
       }
     }
     
@@ -357,7 +317,6 @@ export async function PUT(request: NextRequest) {
         id: eventName,
         name: eventName,
         status: status,
-        deleted: typeof deleted === 'boolean' ? deleted : undefined,
       },
     });
   } catch (error) {
