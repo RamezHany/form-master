@@ -10,13 +10,13 @@ export async function POST(request: NextRequest) {
       companyName: rawCompanyName,
       eventName,
       name,
-      whatsapp,
+      whatsappNumber,
+      nationalId,
       email,
-      gender,
       education,
       universityCollege,
       age,
-      nationalId,
+      gender,
     } = body;
     
     // Ensure company name is properly decoded
@@ -30,18 +30,18 @@ export async function POST(request: NextRequest) {
     });
     
     // Validate required fields
-    if (!companyName || !eventName || !name || !whatsapp || !email || !gender || !education || !universityCollege || !age || !nationalId) {
+    if (!companyName || !eventName || !name || !whatsappNumber || !nationalId || !email || !education || !universityCollege || !age || !gender) {
       console.log('Validation failed - missing fields:', {
         companyName: !!companyName,
         eventName: !!eventName,
         name: !!name,
-        whatsapp: !!whatsapp,
+        whatsappNumber: !!whatsappNumber,
+        nationalId: !!nationalId,
         email: !!email,
-        gender: !!gender,
         education: !!education,
         universityCollege: !!universityCollege,
         age: !!age,
-        nationalId: !!nationalId,
+        gender: !!gender,
       });
       
       return NextResponse.json(
@@ -61,17 +61,9 @@ export async function POST(request: NextRequest) {
     
     // Validate phone number (simple validation)
     const phoneRegex = /^\d{10,15}$/;
-    if (!phoneRegex.test(whatsapp)) {
+    if (!phoneRegex.test(whatsappNumber)) {
       return NextResponse.json(
         { error: 'Invalid WhatsApp number format' },
-        { status: 400 }
-      );
-    }
-    
-    // Validate age (must be a number)
-    if (isNaN(Number(age)) || Number(age) < 15 || Number(age) > 100) {
-      return NextResponse.json(
-        { error: 'Please enter a valid age between 15 and 100' },
         { status: 400 }
       );
     }
@@ -138,8 +130,12 @@ export async function POST(request: NextRequest) {
         const registrationData = tableData.slice(1);
         
         // Find registration with matching email or whatsapp
+        const emailIndex = headers.findIndex(h => h === 'Email');
+        const whatsappIndex = headers.findIndex(h => h === 'WhatsApp Number');
+        
         const existingRegistration = registrationData.find(
-          (row) => row[2] === email || row[1] === whatsapp
+          (row) => (emailIndex !== -1 && row[emailIndex] === email) || 
+                  (whatsappIndex !== -1 && row[whatsappIndex] === whatsappNumber)
         );
         
         if (existingRegistration) {
@@ -159,16 +155,18 @@ export async function POST(request: NextRequest) {
           email,
         });
         
+        // Order data according to the required format:
+        // Name, WhatsApp Number, ID National Number, Email, Education, University and College, Age, Gender
         await addToTable(companyName, eventName, [
           name,
-          whatsapp,
+          whatsappNumber,
           nationalId,
           email,
           education,
           universityCollege,
           age,
           gender,
-          registrationDate,
+          registrationDate, // Additional field for tracking
         ]);
         
         console.log('Registration successful');

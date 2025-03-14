@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 interface FormData {
   name: string;
-  whatsapp: string;
+  whatsappNumber: string;
   nationalId: string;
   email: string;
   education: 'student' | 'graduate' | 'other';
@@ -33,7 +33,7 @@ export default function EventRegistrationPage() {
   
   const [formData, setFormData] = useState<FormData>({
     name: '',
-    whatsapp: '',
+    whatsappNumber: '',
     nationalId: '',
     email: '',
     education: 'student',
@@ -135,13 +135,13 @@ export default function EventRegistrationPage() {
     // Validate form
     if (
       !formData.name ||
-      !formData.whatsapp ||
+      !formData.whatsappNumber ||
+      !formData.nationalId ||
       !formData.email ||
-      !formData.gender ||
       !formData.education ||
       !formData.universityCollege ||
-      !formData.nationalId ||
-      !formData.age
+      !formData.age ||
+      !formData.gender
     ) {
       setError('All fields are required');
       return;
@@ -156,14 +156,14 @@ export default function EventRegistrationPage() {
     
     // Validate phone number (simple validation)
     const phoneRegex = /^\d{10,15}$/;
-    if (!phoneRegex.test(formData.whatsapp)) {
+    if (!phoneRegex.test(formData.whatsappNumber)) {
       setError('Invalid WhatsApp number format');
       return;
     }
     
     // Validate age (must be a number)
-    if (isNaN(Number(formData.age)) || Number(formData.age) < 15 || Number(formData.age) > 100) {
-      setError('Please enter a valid age between 15 and 100');
+    if (isNaN(Number(formData.age)) || Number(formData.age) <= 0) {
+      setError('Please enter a valid age');
       return;
     }
     
@@ -199,13 +199,13 @@ export default function EventRegistrationPage() {
       // Reset form
       setFormData({
         name: '',
-        whatsapp: '',
+        whatsappNumber: '',
+        nationalId: '',
         email: '',
-        gender: 'male',
         education: 'student',
         universityCollege: '',
-        nationalId: '',
         age: '',
+        gender: 'male',
       });
     } catch (error) {
       console.error('Error registering for event:', error);
@@ -392,21 +392,20 @@ export default function EventRegistrationPage() {
                 
                 <div className="col-span-1">
                   <label
-                    htmlFor="whatsapp"
+                    htmlFor="whatsappNumber"
                     className="block text-gray-700 text-sm font-bold mb-2"
                   >
                     WhatsApp Number
                   </label>
                   <input
                     type="tel"
-                    id="whatsapp"
-                    name="whatsapp"
+                    id="whatsappNumber"
+                    name="whatsappNumber"
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    value={formData.whatsapp}
+                    value={formData.whatsappNumber}
                     onChange={handleChange}
                     disabled={submitting}
                     required
-                    placeholder="e.g. 01234567890"
                   />
                 </div>
                 
@@ -415,7 +414,7 @@ export default function EventRegistrationPage() {
                     htmlFor="nationalId"
                     className="block text-gray-700 text-sm font-bold mb-2"
                   >
-                    National ID Number
+                    ID National Number
                   </label>
                   <input
                     type="text"
@@ -489,7 +488,6 @@ export default function EventRegistrationPage() {
                     onChange={handleChange}
                     disabled={submitting}
                     required
-                    placeholder="e.g. Cairo University - Faculty of Engineering"
                   />
                 </div>
                 
@@ -504,8 +502,8 @@ export default function EventRegistrationPage() {
                     type="number"
                     id="age"
                     name="age"
-                    min="15"
-                    max="100"
+                    min="1"
+                    max="120"
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                     value={formData.age}
                     onChange={handleChange}
