@@ -12,7 +12,6 @@ interface Company {
   username: string;
   image: string | null;
   status?: string;
-  deleted?: boolean;
 }
 
 export default function AdminDashboard() {
@@ -21,7 +20,6 @@ export default function AdminDashboard() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showDeleted, setShowDeleted] = useState(false);
 
   useEffect(() => {
     // Redirect if not authenticated or not admin
@@ -62,7 +60,7 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteCompany = async (id: string) => {
-    if (!confirm('Are you sure you want to mark this company as deleted? This will rename its sheet and prevent users from registering for its events.')) {
+    if (!confirm('Are you sure you want to delete this company?')) {
       return;
     }
     
@@ -83,42 +81,10 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleRestoreCompany = async (id: string) => {
-    if (!confirm('Are you sure you want to restore this company? This will make it visible to users again.')) {
-      return;
-    }
+  const handleToggleCompanyStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'enabled' ? 'disabled' : 'enabled';
     
     try {
-      const company = companies.find(c => c.id === id);
-      if (!company) return;
-      
-      const response = await fetch('/api/companies', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id,
-          deleted: false,
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to restore company');
-      }
-      
-      // Refresh companies list
-      fetchCompanies();
-    } catch (error) {
-      console.error('Error restoring company:', error);
-      setError('Failed to restore company');
-    }
-  };
-
-  const handleToggleCompanyStatus = async (id: string, currentStatus: string) => {
-    try {
-      const newStatus = currentStatus === 'disabled' ? 'enabled' : 'disabled';
-      
       const response = await fetch('/api/companies', {
         method: 'PUT',
         headers: {
@@ -134,8 +100,12 @@ export default function AdminDashboard() {
         throw new Error('Failed to update company status');
       }
       
-      // Refresh companies list
-      fetchCompanies();
+      // Update local state
+      setCompanies(companies.map(company => 
+        company.id === id 
+          ? { ...company, status: newStatus } 
+          : company
+      ));
     } catch (error) {
       console.error('Error updating company status:', error);
       setError('Failed to update company status');
@@ -171,20 +141,12 @@ export default function AdminDashboard() {
         <div className="px-4 py-6 sm:px-0">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold text-gray-800">Companies</h2>
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowDeleted(!showDeleted)}
-                className={`py-2 px-4 rounded ${showDeleted ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
-              >
-                {showDeleted ? 'Hide Deleted' : 'Show Deleted'}
-              </button>
-              <Link
-                href="/control_admin/add-company"
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Add Company
-              </Link>
-            </div>
+            <Link
+              href="/control_admin/add-company"
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Add Company
+            </Link>
           </div>
           
           {error && (
@@ -194,10 +156,7 @@ export default function AdminDashboard() {
           )}
           
           {loading ? (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
-              <p className="mt-2">Loading companies...</p>
-            </div>
+            <div className="text-center py-10">Loading companies...</div>
           ) : companies.length === 0 ? (
             <div className="bg-white shadow overflow-hidden sm:rounded-lg p-6 text-center">
               <p className="text-gray-500">No companies found. Add your first company!</p>
@@ -205,8 +164,8 @@ export default function AdminDashboard() {
           ) : (
             <div className="bg-white shadow overflow-hidden sm:rounded-lg">
               <ul className="divide-y divide-gray-200">
-                {companies.filter(company => showDeleted ? true : !company.deleted).map((company) => (
-                  <li key={company.id} className={`p-4 ${company.deleted ? 'bg-gray-100' : ''}`}>
+                {companies.map((company) => (
+                  <li key={company.id} className="px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center">
                       {company.image ? (
                         <div className="h-12 w-12 mr-4 relative">
@@ -263,22 +222,12 @@ export default function AdminDashboard() {
                           </span>
                         </label>
                       </div>
-                      {!company.deleted && (
-                        <button
-                          onClick={() => handleDeleteCompany(company.id)}
-                          className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded"
-                        >
-                          Delete
-                        </button>
-                      )}
-                      {company.deleted && (
-                        <button
-                          onClick={() => handleRestoreCompany(company.id)}
-                          className="bg-green-100 hover:bg-green-200 text-green-800 font-semibold py-2 px-4 rounded"
-                        >
-                          Restore
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleDeleteCompany(company.id)}
+                        className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </li>
                 ))}

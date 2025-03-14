@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Get companies data to check status and deleted flag
+    // Check if company is disabled (for all users except admin)
+    // Get companies data to check status
     const companiesData = await getSheetData('companies');
     const companies = companiesData.slice(1); // Skip header row
     
@@ -48,17 +49,6 @@ export async function GET(request: NextRequest) {
     
     if (company) {
       const status = company[5] || 'enabled';
-      const deleted = company[6] === 'true';
-      
-      // Check if company is deleted (for all users except admin)
-      if (deleted && session.user.type !== 'admin') {
-        return NextResponse.json(
-          { error: 'Company not found' },
-          { status: 404 }
-        );
-      }
-      
-      // Check if company is disabled (for all users except admin)
       if (status === 'disabled' && session.user.type !== 'admin') {
         return NextResponse.json(
           { error: 'Company is disabled' },
@@ -68,13 +58,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Get company sheet data
-    // If company is deleted, we need to look for the -deleted suffix
-    let sheetName = companyName;
-    if (company && company[6] === 'true') {
-      sheetName = `${companyName}-deleted`;
-    }
-    
-    const data = await getSheetData(sheetName);
+    const data = await getSheetData(companyName);
     
     // Find all tables (events) in the sheet
     const events = [];
@@ -109,7 +93,6 @@ export async function GET(request: NextRequest) {
           status: status,
           registrations: 0, // We'll calculate this later
           companyStatus: company ? (company[5] || 'enabled') : 'enabled',
-          companyDeleted: company ? (company[6] === 'true') : false,
         });
       }
     }
@@ -117,7 +100,7 @@ export async function GET(request: NextRequest) {
     // Calculate registrations for each event
     for (const event of events) {
       try {
-        const eventData = await getTableData(sheetName, event.id);
+        const eventData = await getTableData(companyName, event.id);
         // Subtract 1 for the header row
         event.registrations = Math.max(0, eventData.length - 1);
       } catch (error) {

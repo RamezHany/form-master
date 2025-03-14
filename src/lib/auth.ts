@@ -47,13 +47,6 @@ export const authOptions: NextAuthOptions = {
             );
             
             if (company) {
-              // Check if company is deleted
-              const deleted = company[6] === 'true';
-              if (deleted) {
-                console.log(`Company ${company[1]} is deleted, login rejected`);
-                throw new Error('CompanyDeleted');
-              }
-              
               // Check if company is enabled
               const status = company[5] || 'enabled';
               if (status === 'disabled') {
@@ -74,7 +67,6 @@ export const authOptions: NextAuthOptions = {
                   image: company[4] || null, // Company image URL
                   type: 'company',
                   status: status,
-                  deleted: deleted,
                 };
               }
             }
@@ -105,9 +97,6 @@ export const authOptions: NextAuthOptions = {
         if (user.status) {
           token.status = user.status;
         }
-        if (typeof user.deleted !== 'undefined') {
-          token.deleted = user.deleted;
-        }
       }
       return token;
     },
@@ -120,9 +109,6 @@ export const authOptions: NextAuthOptions = {
         }
         if (token.status) {
           session.user.status = token.status as string;
-        }
-        if (typeof token.deleted !== 'undefined') {
-          session.user.deleted = token.deleted as boolean;
         }
       }
       return session;
@@ -141,7 +127,6 @@ declare module 'next-auth' {
     type: string;
     image?: string;
     status?: string;
-    deleted?: boolean;
   }
   
   interface Session {
@@ -152,7 +137,6 @@ declare module 'next-auth' {
       image?: string | null;
       type: string;
       status?: string;
-      deleted?: boolean;
     };
   }
 } 
