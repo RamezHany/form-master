@@ -7,13 +7,12 @@ import Link from 'next/link';
 
 interface FormData {
   name: string;
-  whatsappNumber: string;
-  nationalId: string;
+  phone: string;
   email: string;
-  education: 'student' | 'graduate' | 'other';
-  universityCollege: string;
-  age: string;
   gender: 'male' | 'female';
+  college: string;
+  status: 'student' | 'graduate';
+  nationalId: string;
 }
 
 interface Event {
@@ -33,13 +32,12 @@ export default function EventRegistrationPage() {
   
   const [formData, setFormData] = useState<FormData>({
     name: '',
-    whatsappNumber: '',
-    nationalId: '',
+    phone: '',
     email: '',
-    education: 'student',
-    universityCollege: '',
-    age: '',
     gender: 'male',
+    college: '',
+    status: 'student',
+    nationalId: '',
   });
   
   const [loading, setLoading] = useState(true);
@@ -57,14 +55,7 @@ export default function EventRegistrationPage() {
       try {
         setLoading(true);
         console.log('Fetching events for company:', companyName);
-        
-        // Log the URL being fetched
-        const apiUrl = `/api/events?company=${encodeURIComponent(companyName)}`;
-        console.log('API URL:', apiUrl);
-        
-        const response = await fetch(apiUrl);
-        
-        console.log('Response status:', response.status);
+        const response = await fetch(`/api/events?company=${encodeURIComponent(companyName)}`);
         
         if (!response.ok) {
           // Check if the company is disabled
@@ -72,42 +63,21 @@ export default function EventRegistrationPage() {
             setCompanyDisabled(true);
             throw new Error('Company is disabled');
           }
-          
-          // Log more details about the error
-          const errorText = await response.text();
-          console.error('API error response:', errorText);
-          
-          throw new Error(`Failed to fetch event details: ${response.status} ${response.statusText}`);
+          throw new Error('Failed to fetch event details');
         }
         
         const data = await response.json();
         console.log('Events received:', data.events);
         
-        if (!data.events || data.events.length === 0) {
-          console.error('No events found for company:', companyName);
-          throw new Error('No events found for this company');
-        }
-        
         // Find the event that matches (case insensitive)
         const normalizedEventId = eventId.trim().toLowerCase();
-        console.log('Looking for event with normalized ID:', normalizedEventId);
-        console.log('Available events:', data.events.map((e: Event) => ({ id: e.id, normalizedId: e.id.trim().toLowerCase() })));
-        
         const event = data.events.find(
           (e: Event) => e.id.trim().toLowerCase() === normalizedEventId
         );
         
         if (!event) {
-          console.error('Event not found:', { 
-            eventId, 
-            normalizedEventId,
-            availableEvents: data.events.map((e: Event) => ({ 
-              id: e.id, 
-              normalizedId: e.id.trim().toLowerCase(),
-              match: e.id.trim().toLowerCase() === normalizedEventId 
-            }))
-          });
-          throw new Error(`Event "${eventId}" not found`);
+          console.error('Event not found:', { eventId, availableEvents: data.events.map((e: Event) => e.id) });
+          throw new Error('Event not found');
         }
         
         console.log('Found matching event:', event);
@@ -129,7 +99,7 @@ export default function EventRegistrationPage() {
       } catch (error) {
         console.error('Error fetching event details:', error);
         if (!companyDisabled) {
-          setError(error instanceof Error ? error.message : 'Event not found or no longer available');
+          setError('Event not found or no longer available');
         }
       } finally {
         setLoading(false);
@@ -137,7 +107,7 @@ export default function EventRegistrationPage() {
     };
     
     fetchEventDetails();
-  }, [companyName, eventId, companyDisabled]);
+  }, [companyName, eventId]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -163,13 +133,12 @@ export default function EventRegistrationPage() {
     // Validate form
     if (
       !formData.name ||
-      !formData.whatsappNumber ||
-      !formData.nationalId ||
+      !formData.phone ||
       !formData.email ||
-      !formData.education ||
-      !formData.universityCollege ||
-      !formData.age ||
-      !formData.gender
+      !formData.gender ||
+      !formData.college ||
+      !formData.status ||
+      !formData.nationalId
     ) {
       setError('All fields are required');
       return;
@@ -184,14 +153,8 @@ export default function EventRegistrationPage() {
     
     // Validate phone number (simple validation)
     const phoneRegex = /^\d{10,15}$/;
-    if (!phoneRegex.test(formData.whatsappNumber)) {
-      setError('Invalid WhatsApp number format');
-      return;
-    }
-    
-    // Validate age (must be a number)
-    if (isNaN(Number(formData.age)) || Number(formData.age) <= 0) {
-      setError('Please enter a valid age');
+    if (!phoneRegex.test(formData.phone)) {
+      setError('Invalid phone number format');
       return;
     }
     
@@ -227,13 +190,12 @@ export default function EventRegistrationPage() {
       // Reset form
       setFormData({
         name: '',
-        whatsappNumber: '',
-        nationalId: '',
+        phone: '',
         email: '',
-        education: 'student',
-        universityCollege: '',
-        age: '',
         gender: 'male',
+        college: '',
+        status: 'student',
+        nationalId: '',
       });
     } catch (error) {
       console.error('Error registering for event:', error);
@@ -420,43 +382,21 @@ export default function EventRegistrationPage() {
                 
                 <div className="col-span-1">
                   <label
-                    htmlFor="whatsappNumber"
+                    htmlFor="phone"
                     className="block text-gray-700 text-sm font-bold mb-2"
                   >
-                    WhatsApp Number
+                    Phone Number
                   </label>
                   <input
                     type="tel"
-                    id="whatsappNumber"
-                    name="whatsappNumber"
+                    id="phone"
+                    name="phone"
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    value={formData.whatsappNumber}
+                    value={formData.phone}
                     onChange={handleChange}
                     disabled={submitting}
                     required
                   />
-                </div>
-                
-                <div className="col-span-1">
-                  <label
-                    htmlFor="nationalId"
-                    className="block text-gray-700 text-sm font-bold mb-2"
-                  >
-                    ID National Number
-                  </label>
-                  <input
-                    type="text"
-                    id="nationalId"
-                    name="nationalId"
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    value={formData.nationalId}
-                    onChange={handleChange}
-                    disabled={submitting}
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Your National ID will only be visible to administrators.
-                  </p>
                 </div>
                 
                 <div className="col-span-1">
@@ -472,68 +412,6 @@ export default function EventRegistrationPage() {
                     name="email"
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                     value={formData.email}
-                    onChange={handleChange}
-                    disabled={submitting}
-                    required
-                  />
-                </div>
-                
-                <div className="col-span-1">
-                  <label
-                    htmlFor="education"
-                    className="block text-gray-700 text-sm font-bold mb-2"
-                  >
-                    Education
-                  </label>
-                  <select
-                    id="education"
-                    name="education"
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    value={formData.education}
-                    onChange={handleChange}
-                    disabled={submitting}
-                    required
-                  >
-                    <option value="student">Student</option>
-                    <option value="graduate">Graduate</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                
-                <div className="col-span-1">
-                  <label
-                    htmlFor="universityCollege"
-                    className="block text-gray-700 text-sm font-bold mb-2"
-                  >
-                    University and College
-                  </label>
-                  <input
-                    type="text"
-                    id="universityCollege"
-                    name="universityCollege"
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    value={formData.universityCollege}
-                    onChange={handleChange}
-                    disabled={submitting}
-                    required
-                  />
-                </div>
-                
-                <div className="col-span-1">
-                  <label
-                    htmlFor="age"
-                    className="block text-gray-700 text-sm font-bold mb-2"
-                  >
-                    Age
-                  </label>
-                  <input
-                    type="number"
-                    id="age"
-                    name="age"
-                    min="1"
-                    max="120"
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    value={formData.age}
                     onChange={handleChange}
                     disabled={submitting}
                     required
@@ -559,6 +437,68 @@ export default function EventRegistrationPage() {
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                   </select>
+                </div>
+                
+                <div className="col-span-1">
+                  <label
+                    htmlFor="college"
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                  >
+                    College
+                  </label>
+                  <input
+                    type="text"
+                    id="college"
+                    name="college"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    value={formData.college}
+                    onChange={handleChange}
+                    disabled={submitting}
+                    required
+                  />
+                </div>
+                
+                <div className="col-span-1">
+                  <label
+                    htmlFor="status"
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                  >
+                    Status
+                  </label>
+                  <select
+                    id="status"
+                    name="status"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    value={formData.status}
+                    onChange={handleChange}
+                    disabled={submitting}
+                    required
+                  >
+                    <option value="student">Student</option>
+                    <option value="graduate">Graduate</option>
+                  </select>
+                </div>
+                
+                <div className="col-span-full">
+                  <label
+                    htmlFor="nationalId"
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                  >
+                    National ID
+                  </label>
+                  <input
+                    type="text"
+                    id="nationalId"
+                    name="nationalId"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    value={formData.nationalId}
+                    onChange={handleChange}
+                    disabled={submitting}
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Your National ID will only be visible to administrators.
+                  </p>
                 </div>
               </div>
               

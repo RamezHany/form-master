@@ -9,30 +9,18 @@ export async function GET(request: NextRequest) {
   try {
     // Check if user is authenticated
     const session = await getServerSession(authOptions);
-    console.log('Session:', session ? { 
-      user: { 
-        name: session.user.name, 
-        type: session.user.type 
-      } 
-    } : 'No session');
-    
-    // IMPORTANT: Remove authentication requirement for public event pages
-    // This allows non-logged in users to view event registration forms
-    /*
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
-    */
 
     // Get company name from query parameters
     const { searchParams } = new URL(request.url);
     const rawCompanyName = searchParams.get('company');
     
     if (!rawCompanyName) {
-      console.error('Company name is missing in request');
       return NextResponse.json(
         { error: 'Company name is required' },
         { status: 400 }
@@ -43,13 +31,8 @@ export async function GET(request: NextRequest) {
     const companyName = decodeURIComponent(rawCompanyName);
     console.log('Getting events for company:', companyName);
     
-    // Check if user is admin or the company owner - only for authenticated users
-    if (session && session.user.type !== 'admin' && session.user.name !== companyName) {
-      console.error('Unauthorized access attempt:', {
-        sessionUser: session.user.name,
-        requestedCompany: companyName,
-        userType: session.user.type
-      });
+    // Check if user is admin or the company owner
+    if (session.user.type !== 'admin' && session.user.name !== companyName) {
       return NextResponse.json(
         { error: 'Unauthorized to access this company\'s events' },
         { status: 403 }
@@ -59,34 +42,14 @@ export async function GET(request: NextRequest) {
     // Check if company is disabled (for all users except admin)
     // Get companies data to check status
     const companiesData = await getSheetData('companies');
-    if (!companiesData || companiesData.length <= 1) {
-      console.error('Companies data is empty or missing');
-      return NextResponse.json(
-        { error: 'Companies data not found' },
-        { status: 500 }
-      );
-    }
-    
     const companies = companiesData.slice(1); // Skip header row
-    console.log('Found companies:', companies.length);
     
     // Find the company
     const company = companies.find((row) => row[1] === companyName);
     
-    if (!company) {
-      console.error('Company not found:', companyName);
-      return NextResponse.json(
-        { error: 'Company not found' },
-        { status: 404 }
-      );
-    }
-    
-    console.log('Company found:', { name: company[1], status: company[5] || 'enabled' });
-    
     if (company) {
       const status = company[5] || 'enabled';
-      if (status === 'disabled' && (!session || session.user.type !== 'admin')) {
-        console.error('Company is disabled:', companyName);
+      if (status === 'disabled' && session.user.type !== 'admin') {
         return NextResponse.json(
           { error: 'Company is disabled' },
           { status: 403 }
@@ -95,70 +58,58 @@ export async function GET(request: NextRequest) {
     }
     
     // Get company sheet data
-    try {
-      const data = await getSheetData(companyName);
-      console.log('Company sheet data rows:', data.length);
-      
-      // Find all tables (events) in the sheet
-      const events = [];
-      for (let i = 0; i < data.length; i++) {
-        // If a row has only one cell and it's not empty, it's likely a table name (event)
-        if (data[i].length === 1 && data[i][0] && !data[i][0].startsWith('ID')) {
-          const eventName = data[i][0];
-          console.log('Found event:', eventName);
-          
-          // Get the next row for headers
-          const headers = data[i + 1] || [];
-          
-          // Find the image URL if it exists in the headers
-          const imageIndex = headers.findIndex(h => h === 'Image');
-          let imageUrl = null;
-          
-          if (imageIndex !== -1 && data[i + 2] && data[i + 2][imageIndex]) {
-            imageUrl = data[i + 2][imageIndex];
-          }
-          
-          // Find the event status if it exists in the headers
-          const statusIndex = headers.findIndex(h => h === 'EventStatus');
-          let status = 'enabled'; // Default to enabled
-          
-          if (statusIndex !== -1 && data[i + 2] && data[i + 2][statusIndex]) {
-            status = data[i + 2][statusIndex];
-          }
-          
-          events.push({
-            id: eventName,
-            name: eventName,
-            image: imageUrl,
-            status: status,
-            registrations: 0, // We'll calculate this later
-            companyStatus: company ? (company[5] || 'enabled') : 'enabled',
-          });
+    const data = await getSheetData(companyName);
+    
+    // Find all tables (events) in the sheet
+    const events = [];
+    for (let i = 0; i < data.length; i++) {
+      // If a row has only one cell and it's not empty, it's likely a table name (event)
+      if (data[i].length === 1 && data[i][0] && !data[i][0].startsWith('ID')) {
+        const eventName = data[i][0];
+        
+        // Get the next row for headers
+        const headers = data[i + 1] || [];
+        
+        // Find the image URL if it exists in the headers
+        const imageIndex = headers.findIndex(h => h === 'Image');
+        let imageUrl = null;
+        
+        if (imageIndex !== -1 && data[i + 2] && data[i + 2][imageIndex]) {
+          imageUrl = data[i + 2][imageIndex];
         }
-      }
-      
-      console.log('Total events found:', events.length);
-      
-      // Calculate registrations for each event
-      for (const event of events) {
-        try {
-          const eventData = await getTableData(companyName, event.id);
-          // Subtract 1 for the header row
-          event.registrations = Math.max(0, eventData.length - 1);
-        } catch (error) {
-          console.error(`Error getting data for event ${event.id}:`, error);
-          // Continue with the next event
+        
+        // Find the event status if it exists in the headers
+        const statusIndex = headers.findIndex(h => h === 'EventStatus');
+        let status = 'enabled'; // Default to enabled
+        
+        if (statusIndex !== -1 && data[i + 2] && data[i + 2][statusIndex]) {
+          status = data[i + 2][statusIndex];
         }
+        
+        events.push({
+          id: eventName,
+          name: eventName,
+          image: imageUrl,
+          status: status,
+          registrations: 0, // We'll calculate this later
+          companyStatus: company ? (company[5] || 'enabled') : 'enabled',
+        });
       }
-      
-      return NextResponse.json({ events });
-    } catch (error) {
-      console.error('Error getting company sheet data:', error);
-      return NextResponse.json(
-        { error: 'Failed to get company data' },
-        { status: 500 }
-      );
     }
+    
+    // Calculate registrations for each event
+    for (const event of events) {
+      try {
+        const eventData = await getTableData(companyName, event.id);
+        // Subtract 1 for the header row
+        event.registrations = Math.max(0, eventData.length - 1);
+      } catch (error) {
+        console.error(`Error getting data for event ${event.id}:`, error);
+        // Continue with the next event
+      }
+    }
+    
+    return NextResponse.json({ events });
   } catch (error) {
     console.error('Error getting events:', error);
     return NextResponse.json(
@@ -213,13 +164,12 @@ export async function POST(request: NextRequest) {
     // Define headers for the event table
     const headers = [
       'Name',
-      'WhatsApp Number',
-      'ID National Number',
+      'Phone',
       'Email',
-      'Education',
-      'University and College',
-      'Age',
       'Gender',
+      'College',
+      'Status', // Student or Graduate
+      'National ID',
       'Registration Date',
       'Image', // For the event banner
       'EventStatus', // enabled or disabled
