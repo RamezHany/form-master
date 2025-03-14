@@ -57,7 +57,14 @@ export default function EventRegistrationPage() {
       try {
         setLoading(true);
         console.log('Fetching events for company:', companyName);
-        const response = await fetch(`/api/events?company=${encodeURIComponent(companyName)}`);
+        
+        // Log the URL being fetched
+        const apiUrl = `/api/events?company=${encodeURIComponent(companyName)}`;
+        console.log('API URL:', apiUrl);
+        
+        const response = await fetch(apiUrl);
+        
+        console.log('Response status:', response.status);
         
         if (!response.ok) {
           // Check if the company is disabled
@@ -65,21 +72,42 @@ export default function EventRegistrationPage() {
             setCompanyDisabled(true);
             throw new Error('Company is disabled');
           }
-          throw new Error('Failed to fetch event details');
+          
+          // Log more details about the error
+          const errorText = await response.text();
+          console.error('API error response:', errorText);
+          
+          throw new Error(`Failed to fetch event details: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
         console.log('Events received:', data.events);
         
+        if (!data.events || data.events.length === 0) {
+          console.error('No events found for company:', companyName);
+          throw new Error('No events found for this company');
+        }
+        
         // Find the event that matches (case insensitive)
         const normalizedEventId = eventId.trim().toLowerCase();
+        console.log('Looking for event with normalized ID:', normalizedEventId);
+        console.log('Available events:', data.events.map((e: Event) => ({ id: e.id, normalizedId: e.id.trim().toLowerCase() })));
+        
         const event = data.events.find(
           (e: Event) => e.id.trim().toLowerCase() === normalizedEventId
         );
         
         if (!event) {
-          console.error('Event not found:', { eventId, availableEvents: data.events.map((e: Event) => e.id) });
-          throw new Error('Event not found');
+          console.error('Event not found:', { 
+            eventId, 
+            normalizedEventId,
+            availableEvents: data.events.map((e: Event) => ({ 
+              id: e.id, 
+              normalizedId: e.id.trim().toLowerCase(),
+              match: e.id.trim().toLowerCase() === normalizedEventId 
+            }))
+          });
+          throw new Error(`Event "${eventId}" not found`);
         }
         
         console.log('Found matching event:', event);
@@ -101,7 +129,7 @@ export default function EventRegistrationPage() {
       } catch (error) {
         console.error('Error fetching event details:', error);
         if (!companyDisabled) {
-          setError('Event not found or no longer available');
+          setError(error instanceof Error ? error.message : 'Event not found or no longer available');
         }
       } finally {
         setLoading(false);
