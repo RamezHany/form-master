@@ -23,6 +23,7 @@ interface Event {
   status?: string;
   companyStatus?: string;
   companyDeleted?: boolean;
+  deleted?: boolean;
 }
 
 export default function EventRegistrationPage() {
@@ -50,6 +51,7 @@ export default function EventRegistrationPage() {
   const [eventDisabled, setEventDisabled] = useState(false);
   const [companyDisabled, setCompanyDisabled] = useState(false);
   const [companyDeleted, setCompanyDeleted] = useState(false);
+  const [eventDeleted, setEventDeleted] = useState(false);
 
   useEffect(() => {
     // Fetch event details to verify it exists and get the image
@@ -93,6 +95,11 @@ export default function EventRegistrationPage() {
           setEventDisabled(true);
         }
         
+        // Check if event is deleted
+        if (event.deleted) {
+          setEventDeleted(true);
+        }
+        
         // Check if company is disabled
         if (event.companyStatus === 'disabled') {
           setCompanyDisabled(true);
@@ -108,7 +115,7 @@ export default function EventRegistrationPage() {
         }
       } catch (error) {
         console.error('Error fetching event details:', error);
-        if (!companyDisabled && !companyDeleted) {
+        if (!companyDisabled && !companyDeleted && !eventDeleted) {
           setError('Event not found or no longer available');
         }
       } finally {
@@ -117,7 +124,7 @@ export default function EventRegistrationPage() {
     };
     
     fetchEventDetails();
-  }, [companyName, eventId, companyDisabled, companyDeleted]);
+  }, [companyName, eventId, companyDisabled, companyDeleted, eventDeleted]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -261,6 +268,31 @@ export default function EventRegistrationPage() {
     );
   }
   
+  if (eventDeleted) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="p-6">
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-red-600 mb-4">Event Not Found</h2>
+                <p className="text-gray-600 mb-6">
+                  This event is no longer available. Please contact the organizer for more information.
+                </p>
+                <Link
+                  href="/"
+                  className="inline-block bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  Return to Home
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   if (companyDisabled) {
     return (
       <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -295,7 +327,7 @@ export default function EventRegistrationPage() {
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
               <p className="mt-2 text-gray-600">Loading event details...</p>
             </div>
-          ) : error || eventDisabled || companyDisabled || companyDeleted ? (
+          ) : error || eventDisabled || companyDisabled || companyDeleted || eventDeleted ? (
             <div className="p-8 text-center">
               <div className="text-red-500 text-5xl mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -305,12 +337,14 @@ export default function EventRegistrationPage() {
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
                 {companyDeleted ? 'Company Not Found' : 
                  companyDisabled ? 'Company Disabled' : 
+                 eventDeleted ? 'Event Not Found' :
                  eventDisabled ? 'Event Registration Closed' : 
                  'Event Not Found'}
               </h2>
               <p className="text-gray-600 mb-6">
                 {companyDeleted ? 'This company no longer exists.' : 
                  companyDisabled ? 'This company is currently disabled. Registration is not available at this time.' : 
+                 eventDeleted ? 'This event is no longer available.' :
                  eventDisabled ? 'Registration for this event is currently closed.' : 
                  'The event you are looking for does not exist or is no longer available.'}
               </p>

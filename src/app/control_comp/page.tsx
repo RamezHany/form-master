@@ -13,6 +13,7 @@ interface Event {
   registrations: number;
   status?: string;
   companyStatus?: string;
+  deleted?: boolean;
 }
 
 export default function CompanyDashboard() {
@@ -22,6 +23,7 @@ export default function CompanyDashboard() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const fetchEvents = useCallback(async () => {
     if (!session?.user?.name) return;
@@ -65,7 +67,7 @@ export default function CompanyDashboard() {
   const handleDeleteEvent = async (eventId: string) => {
     if (!session?.user?.name) return;
     
-    if (!confirm('Are you sure you want to delete this event?')) {
+    if (!confirm('هل أنت متأكد من أنك تريد حذف هذا الحدث؟ لن يتم حذفه نهائيًا، بل سيتم إخفاؤه فقط.')) {
       return;
     }
     
@@ -86,6 +88,38 @@ export default function CompanyDashboard() {
     } catch (error) {
       console.error('Error deleting event:', error);
       setError('Failed to delete event');
+    }
+  };
+
+  const handleRestoreEvent = async (eventId: string) => {
+    if (!session?.user?.name) return;
+    
+    if (!confirm('هل أنت متأكد من أنك تريد استعادة هذا الحدث؟')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/events', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyName: session.user.name,
+          eventName: eventId,
+          deleted: false,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to restore event');
+      }
+      
+      // Refresh events list
+      fetchEvents();
+    } catch (error) {
+      console.error('Error restoring event:', error);
+      setError('Failed to restore event');
     }
   };
 
@@ -173,12 +207,20 @@ export default function CompanyDashboard() {
         <div className="px-4 py-6 sm:px-0">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold text-gray-800">Events</h2>
-            <Link
-              href="/control_comp/add-event"
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            >
-              Add Event
-            </Link>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowDeleted(!showDeleted)}
+                className={`py-2 px-4 rounded ${showDeleted ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+              >
+                {showDeleted ? 'إخفاء المحذوفة' : 'عرض المحذوفة'}
+              </button>
+              <Link
+                href="/control_comp/add-event"
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Add Event
+              </Link>
+            </div>
           </div>
           
           {error && (
@@ -196,8 +238,10 @@ export default function CompanyDashboard() {
           ) : (
             <div className="bg-white shadow overflow-hidden sm:rounded-lg">
               <ul className="divide-y divide-gray-200">
-                {events.map((event) => (
-                  <li key={event.id} className="px-6 py-4 flex items-center justify-between">
+                {events
+                  .filter(event => showDeleted ? event.deleted : !event.deleted)
+                  .map((event) => (
+                  <li key={event.id} className={`px-6 py-4 flex items-center justify-between ${event.deleted ? 'bg-gray-100' : ''}`}>
                     <div className="flex items-center">
                       {event.image ? (
                         <div className="h-16 w-16 mr-4 relative">
@@ -216,7 +260,10 @@ export default function CompanyDashboard() {
                         </div>
                       )}
                       <div>
-                        <h3 className="text-lg font-medium text-gray-900">{event.name}</h3>
+                        <h3 className="text-lg font-medium text-gray-900">
+                          {event.name}
+                          {event.deleted && <span className="ml-2 text-sm text-red-600 font-normal">(محذوف)</span>}
+                        </h3>
                         <div className="flex items-center">
                           <p className="text-sm text-gray-500 mr-2">
                             {event.registrations} registrations
@@ -233,32 +280,44 @@ export default function CompanyDashboard() {
                       </div>
                     </div>
                     <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleViewRegistrations(event.id)}
-                        className="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-2 px-4 rounded"
-                      >
-                        View Registrations
-                      </button>
-                      <div className="flex items-center">
-                        <label className="inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            checked={event.status !== 'disabled'}
-                            onChange={() => handleToggleEventStatus(event.id, event.status || 'enabled')}
-                          />
-                          <div className={`relative w-11 h-6 ${event.status === 'disabled' ? 'bg-gray-200' : 'bg-blue-600'} rounded-full peer after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${event.status !== 'disabled' ? 'after:translate-x-full' : ''}`}></div>
-                          <span className="ms-3 text-sm font-medium text-gray-900">
-                            {event.status === 'disabled' ? 'Disabled' : 'Enabled'}
-                          </span>
-                        </label>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteEvent(event.id)}
-                        className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded"
-                      >
-                        Delete
-                      </button>
+                      {!event.deleted && (
+                        <>
+                          <button
+                            onClick={() => handleViewRegistrations(event.id)}
+                            className="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-2 px-4 rounded"
+                          >
+                            View Registrations
+                          </button>
+                          <div className="flex items-center">
+                            <label className="inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={event.status !== 'disabled'}
+                                onChange={() => handleToggleEventStatus(event.id, event.status || 'enabled')}
+                              />
+                              <div className={`relative w-11 h-6 ${event.status === 'disabled' ? 'bg-gray-200' : 'bg-blue-600'} rounded-full peer after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${event.status !== 'disabled' ? 'after:translate-x-full' : ''}`}></div>
+                              <span className="ms-3 text-sm font-medium text-gray-900">
+                                {event.status === 'disabled' ? 'Disabled' : 'Enabled'}
+                              </span>
+                            </label>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteEvent(event.id)}
+                            className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                      {event.deleted && (
+                        <button
+                          onClick={() => handleRestoreEvent(event.id)}
+                          className="bg-green-100 hover:bg-green-200 text-green-800 font-semibold py-2 px-4 rounded"
+                        >
+                          استعادة
+                        </button>
+                      )}
                     </div>
                   </li>
                 ))}

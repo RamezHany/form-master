@@ -140,6 +140,19 @@ export async function POST(request: NextRequest) {
           }
         }
         
+        // Check if the event is deleted
+        const deletedIndex = headers.findIndex(h => h === 'EventDeleted');
+        
+        if (deletedIndex !== -1 && tableData.length > 1) {
+          const eventDeleted = tableData[1][deletedIndex];
+          if (eventDeleted === 'true') {
+            return NextResponse.json(
+              { error: 'Event not found' },
+              { status: 404 }
+            );
+          }
+        }
+        
         // Check if the person is already registered (by email or phone)
         // Skip header row
         const registrationData = tableData.slice(1);
