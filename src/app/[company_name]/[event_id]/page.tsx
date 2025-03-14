@@ -21,6 +21,7 @@ interface Event {
   image: string | null;
   registrations: number;
   status?: string;
+  companyStatus?: string;
 }
 
 export default function EventRegistrationPage() {
@@ -85,6 +86,11 @@ export default function EventRegistrationPage() {
         // Check if event is disabled
         if (event.status === 'disabled') {
           setEventDisabled(true);
+        }
+        
+        // Check if company is disabled
+        if (event.companyStatus === 'disabled') {
+          setCompanyDisabled(true);
         }
         
         if (event.image) {

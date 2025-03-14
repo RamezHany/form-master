@@ -39,23 +39,21 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // If not admin, check if company is disabled
-    if (session.user.type !== 'admin') {
-      // Get companies data to check status
-      const companiesData = await getSheetData('companies');
-      const companies = companiesData.slice(1); // Skip header row
-      
-      // Find the company
-      const company = companies.find((row) => row[1] === companyName);
-      
-      if (company) {
-        const status = company[5] || 'enabled';
-        if (status === 'disabled') {
-          return NextResponse.json(
-            { error: 'Company is disabled' },
-            { status: 403 }
-          );
-        }
+    // Check if company is disabled (for all users except admin)
+    // Get companies data to check status
+    const companiesData = await getSheetData('companies');
+    const companies = companiesData.slice(1); // Skip header row
+    
+    // Find the company
+    const company = companies.find((row) => row[1] === companyName);
+    
+    if (company) {
+      const status = company[5] || 'enabled';
+      if (status === 'disabled' && session.user.type !== 'admin') {
+        return NextResponse.json(
+          { error: 'Company is disabled' },
+          { status: 403 }
+        );
       }
     }
     
@@ -94,6 +92,7 @@ export async function GET(request: NextRequest) {
           image: imageUrl,
           status: status,
           registrations: 0, // We'll calculate this later
+          companyStatus: company ? (company[5] || 'enabled') : 'enabled',
         });
       }
     }

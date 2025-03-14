@@ -27,6 +27,7 @@ export async function GET() {
       username: row[2],
       // Don't include password
       image: row[4] || null,
+      status: row[5] || 'enabled',
     }));
     
     return NextResponse.json({ companies });

@@ -12,6 +12,7 @@ interface Event {
   image: string | null;
   registrations: number;
   status?: string;
+  companyStatus?: string;
 }
 
 export default function CompanyDashboard() {
@@ -246,7 +247,7 @@ export default function CompanyDashboard() {
                             checked={event.status !== 'disabled'}
                             onChange={() => handleToggleEventStatus(event.id, event.status || 'enabled')}
                           />
-                          <div className={`relative w-11 h-6 ${event.status === 'disabled' ? 'bg-gray-200' : 'bg-blue-600'} rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
+                          <div className={`relative w-11 h-6 ${event.status === 'disabled' ? 'bg-gray-200' : 'bg-blue-600'} rounded-full peer after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${event.status !== 'disabled' ? 'after:translate-x-full' : ''}`}></div>
                           <span className="ms-3 text-sm font-medium text-gray-900">
                             {event.status === 'disabled' ? 'Disabled' : 'Enabled'}
                           </span>

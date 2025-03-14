@@ -49,6 +49,7 @@ export default function AdminDashboard() {
       }
       
       const data = await response.json();
+      console.log("Companies data:", data.companies);
       setCompanies(data.companies || []);
     } catch (error) {
       console.error('Error fetching companies:', error);
@@ -215,7 +216,7 @@ export default function AdminDashboard() {
                             checked={company.status !== 'disabled'}
                             onChange={() => handleToggleCompanyStatus(company.id, company.status || 'enabled')}
                           />
-                          <div className={`relative w-11 h-6 ${company.status === 'disabled' ? 'bg-gray-200' : 'bg-blue-600'} rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
+                          <div className={`relative w-11 h-6 ${company.status === 'disabled' ? 'bg-gray-200' : 'bg-blue-600'} rounded-full peer after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${company.status !== 'disabled' ? 'after:translate-x-full' : ''}`}></div>
                           <span className="ms-3 text-sm font-medium text-gray-900">
                             {company.status === 'disabled' ? 'Disabled' : 'Enabled'}
                           </span>
