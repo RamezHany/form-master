@@ -7,12 +7,13 @@ import Link from 'next/link';
 
 interface FormData {
   name: string;
-  phone: string;
-  email: string;
-  gender: 'male' | 'female';
-  college: string;
-  status: 'student' | 'graduate';
+  whatsapp: string;
   nationalId: string;
+  email: string;
+  education: 'student' | 'graduate' | 'other';
+  universityCollege: string;
+  age: string;
+  gender: 'male' | 'female';
 }
 
 interface Event {
@@ -32,12 +33,13 @@ export default function EventRegistrationPage() {
   
   const [formData, setFormData] = useState<FormData>({
     name: '',
-    phone: '',
-    email: '',
-    gender: 'male',
-    college: '',
-    status: 'student',
+    whatsapp: '',
     nationalId: '',
+    email: '',
+    education: 'student',
+    universityCollege: '',
+    age: '',
+    gender: 'male',
   });
   
   const [loading, setLoading] = useState(true);
@@ -133,12 +135,13 @@ export default function EventRegistrationPage() {
     // Validate form
     if (
       !formData.name ||
-      !formData.phone ||
+      !formData.whatsapp ||
       !formData.email ||
       !formData.gender ||
-      !formData.college ||
-      !formData.status ||
-      !formData.nationalId
+      !formData.education ||
+      !formData.universityCollege ||
+      !formData.nationalId ||
+      !formData.age
     ) {
       setError('All fields are required');
       return;
@@ -153,8 +156,14 @@ export default function EventRegistrationPage() {
     
     // Validate phone number (simple validation)
     const phoneRegex = /^\d{10,15}$/;
-    if (!phoneRegex.test(formData.phone)) {
-      setError('Invalid phone number format');
+    if (!phoneRegex.test(formData.whatsapp)) {
+      setError('Invalid WhatsApp number format');
+      return;
+    }
+    
+    // Validate age (must be a number)
+    if (isNaN(Number(formData.age)) || Number(formData.age) < 15 || Number(formData.age) > 100) {
+      setError('Please enter a valid age between 15 and 100');
       return;
     }
     
@@ -190,12 +199,13 @@ export default function EventRegistrationPage() {
       // Reset form
       setFormData({
         name: '',
-        phone: '',
+        whatsapp: '',
         email: '',
         gender: 'male',
-        college: '',
-        status: 'student',
+        education: 'student',
+        universityCollege: '',
         nationalId: '',
+        age: '',
       });
     } catch (error) {
       console.error('Error registering for event:', error);
@@ -382,21 +392,44 @@ export default function EventRegistrationPage() {
                 
                 <div className="col-span-1">
                   <label
-                    htmlFor="phone"
+                    htmlFor="whatsapp"
                     className="block text-gray-700 text-sm font-bold mb-2"
                   >
-                    Phone Number
+                    WhatsApp Number
                   </label>
                   <input
                     type="tel"
-                    id="phone"
-                    name="phone"
+                    id="whatsapp"
+                    name="whatsapp"
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    value={formData.phone}
+                    value={formData.whatsapp}
+                    onChange={handleChange}
+                    disabled={submitting}
+                    required
+                    placeholder="e.g. 01234567890"
+                  />
+                </div>
+                
+                <div className="col-span-1">
+                  <label
+                    htmlFor="nationalId"
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                  >
+                    National ID Number
+                  </label>
+                  <input
+                    type="text"
+                    id="nationalId"
+                    name="nationalId"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    value={formData.nationalId}
                     onChange={handleChange}
                     disabled={submitting}
                     required
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Your National ID will only be visible to administrators.
+                  </p>
                 </div>
                 
                 <div className="col-span-1">
@@ -412,6 +445,69 @@ export default function EventRegistrationPage() {
                     name="email"
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                     value={formData.email}
+                    onChange={handleChange}
+                    disabled={submitting}
+                    required
+                  />
+                </div>
+                
+                <div className="col-span-1">
+                  <label
+                    htmlFor="education"
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                  >
+                    Education
+                  </label>
+                  <select
+                    id="education"
+                    name="education"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    value={formData.education}
+                    onChange={handleChange}
+                    disabled={submitting}
+                    required
+                  >
+                    <option value="student">Student</option>
+                    <option value="graduate">Graduate</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                
+                <div className="col-span-1">
+                  <label
+                    htmlFor="universityCollege"
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                  >
+                    University and College
+                  </label>
+                  <input
+                    type="text"
+                    id="universityCollege"
+                    name="universityCollege"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    value={formData.universityCollege}
+                    onChange={handleChange}
+                    disabled={submitting}
+                    required
+                    placeholder="e.g. Cairo University - Faculty of Engineering"
+                  />
+                </div>
+                
+                <div className="col-span-1">
+                  <label
+                    htmlFor="age"
+                    className="block text-gray-700 text-sm font-bold mb-2"
+                  >
+                    Age
+                  </label>
+                  <input
+                    type="number"
+                    id="age"
+                    name="age"
+                    min="15"
+                    max="100"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    value={formData.age}
                     onChange={handleChange}
                     disabled={submitting}
                     required
@@ -437,68 +533,6 @@ export default function EventRegistrationPage() {
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                   </select>
-                </div>
-                
-                <div className="col-span-1">
-                  <label
-                    htmlFor="college"
-                    className="block text-gray-700 text-sm font-bold mb-2"
-                  >
-                    College
-                  </label>
-                  <input
-                    type="text"
-                    id="college"
-                    name="college"
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    value={formData.college}
-                    onChange={handleChange}
-                    disabled={submitting}
-                    required
-                  />
-                </div>
-                
-                <div className="col-span-1">
-                  <label
-                    htmlFor="status"
-                    className="block text-gray-700 text-sm font-bold mb-2"
-                  >
-                    Status
-                  </label>
-                  <select
-                    id="status"
-                    name="status"
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    value={formData.status}
-                    onChange={handleChange}
-                    disabled={submitting}
-                    required
-                  >
-                    <option value="student">Student</option>
-                    <option value="graduate">Graduate</option>
-                  </select>
-                </div>
-                
-                <div className="col-span-full">
-                  <label
-                    htmlFor="nationalId"
-                    className="block text-gray-700 text-sm font-bold mb-2"
-                  >
-                    National ID
-                  </label>
-                  <input
-                    type="text"
-                    id="nationalId"
-                    name="nationalId"
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    value={formData.nationalId}
-                    onChange={handleChange}
-                    disabled={submitting}
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Your National ID will only be visible to administrators.
-                  </p>
                 </div>
               </div>
               

@@ -10,11 +10,12 @@ export async function POST(request: NextRequest) {
       companyName: rawCompanyName,
       eventName,
       name,
-      phone,
+      whatsapp,
       email,
       gender,
-      college,
-      status,
+      education,
+      universityCollege,
+      age,
       nationalId,
     } = body;
     
@@ -29,16 +30,17 @@ export async function POST(request: NextRequest) {
     });
     
     // Validate required fields
-    if (!companyName || !eventName || !name || !phone || !email || !gender || !college || !status || !nationalId) {
+    if (!companyName || !eventName || !name || !whatsapp || !email || !gender || !education || !universityCollege || !age || !nationalId) {
       console.log('Validation failed - missing fields:', {
         companyName: !!companyName,
         eventName: !!eventName,
         name: !!name,
-        phone: !!phone,
+        whatsapp: !!whatsapp,
         email: !!email,
         gender: !!gender,
-        college: !!college,
-        status: !!status,
+        education: !!education,
+        universityCollege: !!universityCollege,
+        age: !!age,
         nationalId: !!nationalId,
       });
       
@@ -59,9 +61,17 @@ export async function POST(request: NextRequest) {
     
     // Validate phone number (simple validation)
     const phoneRegex = /^\d{10,15}$/;
-    if (!phoneRegex.test(phone)) {
+    if (!phoneRegex.test(whatsapp)) {
       return NextResponse.json(
-        { error: 'Invalid phone number format' },
+        { error: 'Invalid WhatsApp number format' },
+        { status: 400 }
+      );
+    }
+    
+    // Validate age (must be a number)
+    if (isNaN(Number(age)) || Number(age) < 15 || Number(age) > 100) {
+      return NextResponse.json(
+        { error: 'Please enter a valid age between 15 and 100' },
         { status: 400 }
       );
     }
@@ -123,13 +133,13 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // Check if the person is already registered (by email or phone)
+        // Check if the person is already registered (by email or whatsapp)
         // Skip header row
         const registrationData = tableData.slice(1);
         
-        // Find registration with matching email or phone
+        // Find registration with matching email or whatsapp
         const existingRegistration = registrationData.find(
-          (row) => row[2] === email || row[1] === phone
+          (row) => row[2] === email || row[1] === whatsapp
         );
         
         if (existingRegistration) {
@@ -151,14 +161,14 @@ export async function POST(request: NextRequest) {
         
         await addToTable(companyName, eventName, [
           name,
-          phone,
-          email,
-          gender,
-          college,
-          status,
+          whatsapp,
           nationalId,
+          email,
+          education,
+          universityCollege,
+          age,
+          gender,
           registrationDate,
-          '', // No image for registrations
         ]);
         
         console.log('Registration successful');

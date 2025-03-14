@@ -164,12 +164,13 @@ export async function POST(request: NextRequest) {
     // Define headers for the event table
     const headers = [
       'Name',
-      'Phone',
+      'WhatsApp Number',
+      'ID National Number',
       'Email',
+      'Education',
+      'University and College',
+      'Age',
       'Gender',
-      'College',
-      'Status', // Student or Graduate
-      'National ID',
       'Registration Date',
       'Image', // For the event banner
       'EventStatus', // enabled or disabled
