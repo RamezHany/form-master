@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSheetData, appendToSheet, createSheet, deleteRow, updateRow, renameSheet } from '@/lib/sheets';
+import { getSheetData, appendToSheet, createSheet, updateRow, renameSheet } from '@/lib/sheets';
 import { uploadImage } from '@/lib/github';
 import bcrypt from 'bcryptjs';
 import { getServerSession } from 'next-auth';

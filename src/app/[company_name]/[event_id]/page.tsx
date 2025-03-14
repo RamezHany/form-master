@@ -117,7 +117,7 @@ export default function EventRegistrationPage() {
     };
     
     fetchEventDetails();
-  }, [companyName, eventId]);
+  }, [companyName, eventId, companyDisabled, companyDeleted]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
