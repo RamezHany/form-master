@@ -28,6 +28,7 @@ export async function GET() {
       // Don't include password
       image: row[4] || null,
       status: row[5] || 'enabled',
+      deleted: row[6] === 'true' ? true : false,
     }));
     
     return NextResponse.json({ companies });
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
       // Create companies sheet with headers
       await createSheet('companies');
       await appendToSheet('companies', [
-        ['ID', 'Name', 'Username', 'Password', 'Image', 'Status'],
+        ['ID', 'Name', 'Username', 'Password', 'Image', 'Status', 'Deleted'],
       ]);
     }
     
@@ -103,9 +104,9 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Add company to the sheet with status enabled by default
+    // Add company to the sheet with status enabled by default and deleted false
     await appendToSheet('companies', [
-      [id, name, username, hashedPassword, imageUrl, 'enabled'],
+      [id, name, username, hashedPassword, imageUrl, 'enabled', 'false'],
     ]);
     
     // Create a sheet for the company
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
         username,
         image: imageUrl,
         status: 'enabled',
+        deleted: false,
       },
     });
   } catch (error) {
@@ -143,7 +145,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Parse request body
-    const { id, name, username, password, image, status } = await request.json();
+    const { id, name, username, password, image, status, deleted } = await request.json();
     
     // Validate required fields
     if (!id) {
@@ -174,6 +176,7 @@ export async function PUT(request: NextRequest) {
     const currentPassword = currentCompany[3];
     const currentImage = currentCompany[4] || null;
     const currentStatus = currentCompany[5] || 'enabled';
+    const currentDeleted = currentCompany[6] === 'true' ? true : false;
     
     // Check if username is being changed and if it already exists
     if (username && username !== currentUsername) {
@@ -210,6 +213,7 @@ export async function PUT(request: NextRequest) {
       hashedPassword,
       imageUrl,
       status || currentStatus,
+      typeof deleted === 'boolean' ? (deleted ? 'true' : 'false') : (currentDeleted ? 'true' : 'false'),
     ];
     
     await updateRow('companies', companyIndex + 1, updatedCompany);
@@ -227,6 +231,7 @@ export async function PUT(request: NextRequest) {
         username: username || currentUsername,
         image: imageUrl,
         status: status || currentStatus,
+        deleted: typeof deleted === 'boolean' ? deleted : currentDeleted,
       },
     });
   } catch (error) {
@@ -238,7 +243,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE /api/companies?id={id} - Delete a company
+// DELETE /api/companies?id={id} - Mark a company as deleted
 export async function DELETE(request: NextRequest) {
   try {
     // Check if user is authenticated as admin
@@ -275,23 +280,26 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    // Get company name for deleting its sheet
+    // Get company name for renaming its sheet
     const companyName = companies[companyIndex][1];
     
-    // Delete the company row (add 1 to account for header row)
-    await deleteRow('companies', companyIndex + 1);
+    // Update the company row to mark as deleted
+    const updatedCompany = [...companies[companyIndex]];
+    updatedCompany[6] = 'true'; // Set deleted to true
     
-    // Note: We don't delete the company's sheet to preserve data
-    // In a production environment, you might want to archive it instead
+    await updateRow('companies', companyIndex + 1, updatedCompany);
+    
+    // Rename the company's sheet to add "-deleted" suffix
+    await renameSheet(companyName, `${companyName}-deleted`);
     
     return NextResponse.json({
       success: true,
-      message: `Company ${companyName} deleted successfully`,
+      message: `Company ${companyName} marked as deleted successfully`,
     });
   } catch (error) {
-    console.error('Error deleting company:', error);
+    console.error('Error marking company as deleted:', error);
     return NextResponse.json(
-      { error: 'Failed to delete company' },
+      { error: 'Failed to mark company as deleted' },
       { status: 500 }
     );
   }

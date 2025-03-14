@@ -88,6 +88,17 @@ export async function POST(request: NextRequest) {
       
       if (company) {
         const status = company[5] || 'enabled';
+        const deleted = company[6] === 'true';
+        
+        // Check if company is deleted
+        if (deleted) {
+          return NextResponse.json(
+            { error: 'Company not found' },
+            { status: 404 }
+          );
+        }
+        
+        // Check if company is disabled
         if (status === 'disabled') {
           return NextResponse.json(
             { error: 'Company is disabled, registration is not available' },
@@ -99,7 +110,13 @@ export async function POST(request: NextRequest) {
       // Check if the event exists
       try {
         console.log('Checking if event exists:', { companyName, eventName });
-        const tableData = await getTableData(companyName, eventName);
+        // If company is deleted, we need to look for the -deleted suffix
+        let sheetName = companyName;
+        if (company && company[6] === 'true') {
+          sheetName = `${companyName}-deleted`;
+        }
+        
+        const tableData = await getTableData(sheetName, eventName);
         
         if (!tableData || tableData.length === 0) {
           console.error(`Event ${eventName} not found in company ${companyName}`);
@@ -149,7 +166,7 @@ export async function POST(request: NextRequest) {
           email,
         });
         
-        await addToTable(companyName, eventName, [
+        await addToTable(sheetName, eventName, [
           name,
           phone,
           email,

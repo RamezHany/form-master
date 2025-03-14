@@ -36,6 +36,8 @@ export default function LoginPage() {
         // Check if the error is due to a disabled company
         if (result.error === 'CompanyDisabled') {
           setError('This company account has been disabled. Please contact the administrator.');
+        } else if (result.error === 'CompanyDeleted') {
+          setError('This company account no longer exists. Please contact the administrator.');
         } else {
           setError('Invalid username or password');
         }
