@@ -67,24 +67,33 @@ export default function CompanyDashboard() {
   const handleDeleteEvent = async (eventId: string) => {
     if (!session?.user?.name) return;
     
-    if (!confirm('Are you sure you want to mark this event as deleted? It will be hidden from users.')) {
+    if (!confirm('Are you sure you want to mark this event as deleted? It will no longer be visible to users.')) {
       return;
     }
     
     try {
-      const response = await fetch(
-        `/api/events?company=${session.user.name}&event=${eventId}`,
-        {
-          method: 'DELETE',
-        }
-      );
+      const response = await fetch('/api/events', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyName: session.user.name,
+          eventName: eventId,
+          deleted: true,
+        }),
+      });
       
       if (!response.ok) {
         throw new Error('Failed to delete event');
       }
       
-      // Refresh events list
-      fetchEvents();
+      // Update local state
+      setEvents(events.map(event => 
+        event.id === eventId 
+          ? { ...event, deleted: true } 
+          : event
+      ));
     } catch (error) {
       console.error('Error deleting event:', error);
       setError('Failed to delete event');
@@ -115,8 +124,12 @@ export default function CompanyDashboard() {
         throw new Error('Failed to restore event');
       }
       
-      // Refresh events list
-      fetchEvents();
+      // Update local state
+      setEvents(events.map(event => 
+        event.id === eventId 
+          ? { ...event, deleted: false } 
+          : event
+      ));
     } catch (error) {
       console.error('Error restoring event:', error);
       setError('Failed to restore event');
@@ -241,86 +254,86 @@ export default function CompanyDashboard() {
                 {events
                   .filter(event => showDeleted ? event.deleted : !event.deleted)
                   .map((event) => (
-                  <li key={event.id} className={`flex flex-col md:flex-row md:items-center justify-between px-6 py-4 ${event.deleted ? 'bg-gray-100' : ''}`}>
-                    <div className="flex items-center mb-4 md:mb-0">
-                      {event.image ? (
-                        <div className="h-16 w-16 mr-4 relative">
-                          <Image
-                            src={event.image}
-                            alt={event.name}
-                            fill
-                            className="rounded object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-16 w-16 mr-4 bg-gray-200 rounded flex items-center justify-center">
-                          <span className="text-gray-500 text-lg">
-                            {event.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900">
-                          {event.name}
-                          {event.deleted && <span className="ml-2 text-sm text-red-600 font-normal">(Deleted)</span>}
-                        </h3>
-                        <div className="flex items-center">
-                          <p className="text-sm text-gray-500 mr-2">
-                            {event.registrations} registrations
-                          </p>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            event.status === 'disabled' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                          }`}>
-                            {event.status || 'enabled'}
-                          </span>
-                        </div>
-                        <p className="text-sm text-blue-500">
-                          {`${process.env.NEXT_PUBLIC_URL || window.location.origin}/${session?.user?.name}/${event.id}`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {!event.deleted && (
-                        <>
-                          <button
-                            onClick={() => handleViewRegistrations(event.id)}
-                            className="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-2 px-4 rounded"
-                          >
-                            View Registrations
-                          </button>
-                          <div className="flex items-center">
-                            <label className="inline-flex items-center cursor-pointer">
-                              <input
-                                type="checkbox"
-                                className="sr-only peer"
-                                checked={event.status !== 'disabled'}
-                                onChange={() => handleToggleEventStatus(event.id, event.status || 'enabled')}
-                              />
-                              <div className={`relative w-11 h-6 ${event.status === 'disabled' ? 'bg-gray-200' : 'bg-blue-600'} rounded-full peer after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${event.status !== 'disabled' ? 'after:translate-x-full' : ''}`}></div>
-                              <span className="ms-3 text-sm font-medium text-gray-900">
-                                {event.status === 'disabled' ? 'Disabled' : 'Enabled'}
-                              </span>
-                            </label>
+                    <li key={event.id} className={`px-6 py-4 flex items-center justify-between ${event.deleted ? 'bg-gray-100' : ''}`}>
+                      <div className="flex items-center">
+                        {event.image ? (
+                          <div className="h-16 w-16 mr-4 relative">
+                            <Image
+                              src={event.image}
+                              alt={event.name}
+                              fill
+                              className="rounded object-cover"
+                            />
                           </div>
+                        ) : (
+                          <div className="h-16 w-16 mr-4 bg-gray-200 rounded flex items-center justify-center">
+                            <span className="text-gray-500 text-lg">
+                              {event.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-900">
+                            {event.name}
+                            {event.deleted && <span className="ml-2 text-sm text-red-600 font-normal">(Deleted)</span>}
+                          </h3>
+                          <div className="flex items-center">
+                            <p className="text-sm text-gray-500 mr-2">
+                              {event.registrations} registrations
+                            </p>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              event.status === 'disabled' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                            }`}>
+                              {event.status || 'enabled'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-blue-500">
+                            {`${process.env.NEXT_PUBLIC_URL || window.location.origin}/${session?.user?.name}/${event.id}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        {!event.deleted && (
+                          <>
+                            <button
+                              onClick={() => handleViewRegistrations(event.id)}
+                              className="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-2 px-4 rounded"
+                            >
+                              View Registrations
+                            </button>
+                            <div className="flex items-center">
+                              <label className="inline-flex items-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  className="sr-only peer"
+                                  checked={event.status !== 'disabled'}
+                                  onChange={() => handleToggleEventStatus(event.id, event.status || 'enabled')}
+                                />
+                                <div className={`relative w-11 h-6 ${event.status === 'disabled' ? 'bg-gray-200' : 'bg-blue-600'} rounded-full peer after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${event.status !== 'disabled' ? 'after:translate-x-full' : ''}`}></div>
+                                <span className="ms-3 text-sm font-medium text-gray-900">
+                                  {event.status === 'disabled' ? 'Disabled' : 'Enabled'}
+                                </span>
+                              </label>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteEvent(event.id)}
+                              className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                        {event.deleted && (
                           <button
-                            onClick={() => handleDeleteEvent(event.id)}
-                            className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded"
+                            onClick={() => handleRestoreEvent(event.id)}
+                            className="bg-green-100 hover:bg-green-200 text-green-800 font-semibold py-2 px-4 rounded"
                           >
-                            Delete
+                            Restore
                           </button>
-                        </>
-                      )}
-                      {event.deleted && (
-                        <button
-                          onClick={() => handleRestoreEvent(event.id)}
-                          className="bg-green-100 hover:bg-green-200 text-green-800 font-semibold py-2 px-4 rounded"
-                        >
-                          Restore
-                        </button>
-                      )}
-                    </div>
-                  </li>
-                ))}
+                        )}
+                      </div>
+                    </li>
+                  ))}
               </ul>
             </div>
           )}
