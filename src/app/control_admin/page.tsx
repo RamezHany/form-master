@@ -59,28 +59,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeleteCompany = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this company?')) {
-      return;
-    }
-    
-    try {
-      const response = await fetch(`/api/companies?id=${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete company');
-      }
-      
-      // Refresh companies list
-      fetchCompanies();
-    } catch (error) {
-      console.error('Error deleting company:', error);
-      setError('Failed to delete company');
-    }
-  };
-
   const handleToggleCompanyStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'enabled' ? 'disabled' : 'enabled';
     
@@ -222,12 +200,6 @@ export default function AdminDashboard() {
                           </span>
                         </label>
                       </div>
-                      <button
-                        onClick={() => handleDeleteCompany(company.id)}
-                        className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded"
-                      >
-                        Delete
-                      </button>
                     </div>
                   </li>
                 ))}

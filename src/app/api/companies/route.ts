@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSheetData, appendToSheet, createSheet, deleteRow, updateRow, renameSheet } from '@/lib/sheets';
+import { getSheetData, appendToSheet, createSheet, updateRow, renameSheet } from '@/lib/sheets';
 import { uploadImage } from '@/lib/github';
 import bcrypt from 'bcryptjs';
 import { getServerSession } from 'next-auth';
@@ -233,65 +233,6 @@ export async function PUT(request: NextRequest) {
     console.error('Error updating company:', error);
     return NextResponse.json(
       { error: 'Failed to update company' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE /api/companies?id={id} - Delete a company
-export async function DELETE(request: NextRequest) {
-  try {
-    // Check if user is authenticated as admin
-    const session = await getServerSession(authOptions);
-    if (!session || session.user.type !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Get company ID from query parameters
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-    
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Company ID is required' },
-        { status: 400 }
-      );
-    }
-    
-    // Get companies data
-    const data = await getSheetData('companies');
-    const companies = data.slice(1); // Skip header row
-    
-    // Find the company index
-    const companyIndex = companies.findIndex((row) => row[0] === id);
-    
-    if (companyIndex === -1) {
-      return NextResponse.json(
-        { error: 'Company not found' },
-        { status: 404 }
-      );
-    }
-    
-    // Get company name for deleting its sheet
-    const companyName = companies[companyIndex][1];
-    
-    // Delete the company row (add 1 to account for header row)
-    await deleteRow('companies', companyIndex + 1);
-    
-    // Note: We don't delete the company's sheet to preserve data
-    // In a production environment, you might want to archive it instead
-    
-    return NextResponse.json({
-      success: true,
-      message: `Company ${companyName} deleted successfully`,
-    });
-  } catch (error) {
-    console.error('Error deleting company:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete company' },
       { status: 500 }
     );
   }

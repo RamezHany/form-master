@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSheetData, createTable, getTableData, deleteTable, updateRow } from '@/lib/sheets';
+import { getSheetData, getTableData, createTable, updateRow } from '@/lib/sheets';
 import { uploadImage } from '@/lib/github';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -216,10 +216,10 @@ export async function PUT(request: NextRequest) {
     }
 
     // Parse request body
-    const { companyName, eventName, status } = await request.json();
+    const { company, event, status } = await request.json();
     
     // Validate required fields
-    if (!companyName || !eventName || !status) {
+    if (!company || !event || !status) {
       return NextResponse.json(
         { error: 'Company name, event name, and status are required' },
         { status: 400 }
@@ -235,7 +235,7 @@ export async function PUT(request: NextRequest) {
     }
     
     // Check if user is admin or the company owner
-    if (session.user.type !== 'admin' && session.user.name !== companyName) {
+    if (session.user.type !== 'admin' && session.user.name !== company) {
       return NextResponse.json(
         { error: 'Unauthorized to update events for this company' },
         { status: 403 }
@@ -243,12 +243,12 @@ export async function PUT(request: NextRequest) {
     }
     
     // Get company sheet data
-    const data = await getSheetData(companyName);
+    const data = await getSheetData(company);
     
     // Find the event table
     let eventIndex = -1;
     for (let i = 0; i < data.length; i++) {
-      if (data[i].length === 1 && data[i][0] === eventName) {
+      if (data[i].length === 1 && data[i][0] === event) {
         eventIndex = i;
         break;
       }
@@ -277,28 +277,28 @@ export async function PUT(request: NextRequest) {
     if (statusIndex === -1) {
       // Add EventStatus to headers
       headersRow.push('EventStatus');
-      await updateRow(companyName, eventIndex + 1, headersRow);
+      await updateRow(company, eventIndex + 1, headersRow);
       
       // Update the first data row with the status if it exists
       if (data[eventIndex + 2]) {
         const firstDataRow = [...data[eventIndex + 2]];
         firstDataRow.push(status);
-        await updateRow(companyName, eventIndex + 2, firstDataRow);
+        await updateRow(company, eventIndex + 2, firstDataRow);
       }
     } else {
       // Update the first data row with the status if it exists
       if (data[eventIndex + 2]) {
         const firstDataRow = [...data[eventIndex + 2]];
         firstDataRow[statusIndex] = status;
-        await updateRow(companyName, eventIndex + 2, firstDataRow);
+        await updateRow(company, eventIndex + 2, firstDataRow);
       }
     }
     
     return NextResponse.json({
       success: true,
       event: {
-        id: eventName,
-        name: eventName,
+        id: event,
+        name: event,
         status: status,
       },
     });
@@ -306,54 +306,6 @@ export async function PUT(request: NextRequest) {
     console.error('Error updating event:', error);
     return NextResponse.json(
       { error: 'Failed to update event' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE /api/events?company={companyName}&event={eventName} - Delete an event
-export async function DELETE(request: NextRequest) {
-  try {
-    // Check if user is authenticated
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Get parameters from query
-    const { searchParams } = new URL(request.url);
-    const companyName = searchParams.get('company');
-    const eventName = searchParams.get('event');
-    
-    if (!companyName || !eventName) {
-      return NextResponse.json(
-        { error: 'Company name and event name are required' },
-        { status: 400 }
-      );
-    }
-    
-    // Check if user is admin or the company owner
-    if (session.user.type !== 'admin' && session.user.name !== companyName) {
-      return NextResponse.json(
-        { error: 'Unauthorized to delete events for this company' },
-        { status: 403 }
-      );
-    }
-    
-    // Delete the event table
-    await deleteTable(companyName, eventName);
-    
-    return NextResponse.json({
-      success: true,
-      message: `Event ${eventName} deleted successfully`,
-    });
-  } catch (error) {
-    console.error('Error deleting event:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete event' },
       { status: 500 }
     );
   }

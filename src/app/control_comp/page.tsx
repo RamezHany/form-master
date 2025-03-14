@@ -62,37 +62,6 @@ export default function CompanyDashboard() {
     }
   }, [status, session, router, fetchEvents]);
 
-  const handleDeleteEvent = async (eventId: string) => {
-    if (!session?.user?.name) return;
-    
-    if (!confirm('Are you sure you want to delete this event?')) {
-      return;
-    }
-    
-    try {
-      const response = await fetch(
-        `/api/events?company=${session.user.name}&event=${eventId}`,
-        {
-          method: 'DELETE',
-        }
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete event');
-      }
-      
-      // Refresh events list
-      fetchEvents();
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      setError('Failed to delete event');
-    }
-  };
-
-  const handleViewRegistrations = (eventId: string) => {
-    router.push(`/control_comp/event/${eventId}`);
-  };
-
   const handleToggleEventStatus = async (eventId: string, currentStatus: string) => {
     if (!session?.user?.name) return;
     
@@ -105,8 +74,8 @@ export default function CompanyDashboard() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          companyName: session.user.name,
-          eventName: eventId,
+          company: session.user.name,
+          event: eventId,
           status: newStatus,
         }),
       });
@@ -125,6 +94,10 @@ export default function CompanyDashboard() {
       console.error('Error updating event status:', error);
       setError('Failed to update event status');
     }
+  };
+
+  const handleViewRegistrations = (eventId: string) => {
+    router.push(`/control_comp/event/${eventId}`);
   };
 
   if (status === 'loading') {
@@ -253,12 +226,6 @@ export default function CompanyDashboard() {
                           </span>
                         </label>
                       </div>
-                      <button
-                        onClick={() => handleDeleteEvent(event.id)}
-                        className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded"
-                      >
-                        Delete
-                      </button>
                     </div>
                   </li>
                 ))}
