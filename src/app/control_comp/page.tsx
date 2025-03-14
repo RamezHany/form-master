@@ -11,6 +11,7 @@ interface Event {
   name: string;
   image: string | null;
   registrations: number;
+  status?: string;
 }
 
 export default function CompanyDashboard() {
@@ -89,6 +90,40 @@ export default function CompanyDashboard() {
 
   const handleViewRegistrations = (eventId: string) => {
     router.push(`/control_comp/event/${eventId}`);
+  };
+
+  const handleToggleEventStatus = async (eventId: string, currentStatus: string) => {
+    if (!session?.user?.name) return;
+    
+    const newStatus = currentStatus === 'enabled' ? 'disabled' : 'enabled';
+    
+    try {
+      const response = await fetch('/api/events', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyName: session.user.name,
+          eventName: eventId,
+          status: newStatus,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update event status');
+      }
+      
+      // Update local state
+      setEvents(events.map(event => 
+        event.id === eventId 
+          ? { ...event, status: newStatus } 
+          : event
+      ));
+    } catch (error) {
+      console.error('Error updating event status:', error);
+      setError('Failed to update event status');
+    }
   };
 
   if (status === 'loading') {
@@ -181,9 +216,16 @@ export default function CompanyDashboard() {
                       )}
                       <div>
                         <h3 className="text-lg font-medium text-gray-900">{event.name}</h3>
-                        <p className="text-sm text-gray-500">
-                          {event.registrations} registrations
-                        </p>
+                        <div className="flex items-center">
+                          <p className="text-sm text-gray-500 mr-2">
+                            {event.registrations} registrations
+                          </p>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            event.status === 'disabled' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                          }`}>
+                            {event.status || 'enabled'}
+                          </span>
+                        </div>
                         <p className="text-sm text-blue-500">
                           {`${process.env.NEXT_PUBLIC_URL || window.location.origin}/${session?.user?.name}/${event.id}`}
                         </p>
@@ -196,6 +238,20 @@ export default function CompanyDashboard() {
                       >
                         View Registrations
                       </button>
+                      <div className="flex items-center">
+                        <label className="inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={event.status !== 'disabled'}
+                            onChange={() => handleToggleEventStatus(event.id, event.status || 'enabled')}
+                          />
+                          <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                          <span className="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                            {event.status === 'disabled' ? 'Disabled' : 'Enabled'}
+                          </span>
+                        </label>
+                      </div>
                       <button
                         onClick={() => handleDeleteEvent(event.id)}
                         className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded"

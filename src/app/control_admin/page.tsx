@@ -11,6 +11,7 @@ interface Company {
   name: string;
   username: string;
   image: string | null;
+  status?: string;
 }
 
 export default function AdminDashboard() {
@@ -76,6 +77,37 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error deleting company:', error);
       setError('Failed to delete company');
+    }
+  };
+
+  const handleToggleCompanyStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'enabled' ? 'disabled' : 'enabled';
+    
+    try {
+      const response = await fetch('/api/companies', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id,
+          status: newStatus,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update company status');
+      }
+      
+      // Update local state
+      setCompanies(companies.map(company => 
+        company.id === id 
+          ? { ...company, status: newStatus } 
+          : company
+      ));
+    } catch (error) {
+      console.error('Error updating company status:', error);
+      setError('Failed to update company status');
     }
   };
 
@@ -152,7 +184,14 @@ export default function AdminDashboard() {
                       )}
                       <div>
                         <h3 className="text-lg font-medium text-gray-900">{company.name}</h3>
-                        <p className="text-sm text-gray-500">@{company.username}</p>
+                        <div className="flex items-center">
+                          <p className="text-sm text-gray-500 mr-2">@{company.username}</p>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            company.status === 'disabled' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                          }`}>
+                            {company.status || 'enabled'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <div className="flex space-x-2">
@@ -162,6 +201,26 @@ export default function AdminDashboard() {
                       >
                         View Events
                       </Link>
+                      <Link
+                        href={`/control_admin/company/${company.id}`}
+                        className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-semibold py-2 px-4 rounded"
+                      >
+                        Edit
+                      </Link>
+                      <div className="flex items-center">
+                        <label className="inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={company.status !== 'disabled'}
+                            onChange={() => handleToggleCompanyStatus(company.id, company.status || 'enabled')}
+                          />
+                          <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                          <span className="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                            {company.status === 'disabled' ? 'Disabled' : 'Enabled'}
+                          </span>
+                        </label>
+                      </div>
                       <button
                         onClick={() => handleDeleteCompany(company.id)}
                         className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded"
