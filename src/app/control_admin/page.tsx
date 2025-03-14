@@ -208,8 +208,8 @@ export default function AdminDashboard() {
                 {companies
                   .filter(company => showDeleted ? company.deleted : !company.deleted)
                   .map((company) => (
-                    <li key={company.id} className={`p-4 ${company.deleted ? 'bg-gray-100' : ''}`}>
-                      <div className="flex items-center">
+                    <li key={company.id} className={`flex flex-col md:flex-row md:items-center justify-between px-6 py-4 ${company.deleted ? 'bg-gray-100' : ''}`}>
+                      <div className="flex items-center mb-4 md:mb-0">
                         {company.image ? (
                           <div className="h-12 w-12 mr-4 relative">
                             <Image
@@ -227,7 +227,10 @@ export default function AdminDashboard() {
                           </div>
                         )}
                         <div>
-                          <h3 className="text-lg font-medium text-gray-900">{company.name}</h3>
+                          <h3 className="text-lg font-medium text-gray-900">
+                            {company.name}
+                            {company.deleted && <span className="ml-2 text-sm text-red-600 font-normal">(Deleted)</span>}
+                          </h3>
                           <div className="flex items-center">
                             <p className="text-sm text-gray-500 mr-2">@{company.username}</p>
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -238,40 +241,42 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex space-x-2">
-                        <Link
-                          href={`/control_admin/company/${company.id}`}
-                          className="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-2 px-4 rounded"
-                        >
-                          View Events
-                        </Link>
-                        <Link
-                          href={`/control_admin/company/${company.id}`}
-                          className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-semibold py-2 px-4 rounded"
-                        >
-                          Edit
-                        </Link>
-                        <div className="flex items-center">
-                          <label className="inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              className="sr-only peer"
-                              checked={company.status !== 'disabled'}
-                              onChange={() => handleToggleCompanyStatus(company.id, company.status || 'enabled')}
-                            />
-                            <div className={`relative w-11 h-6 ${company.status === 'disabled' ? 'bg-gray-200' : 'bg-blue-600'} rounded-full peer after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${company.status !== 'disabled' ? 'after:translate-x-full' : ''}`}></div>
-                            <span className="ms-3 text-sm font-medium text-gray-900">
-                              {company.status === 'disabled' ? 'Disabled' : 'Enabled'}
-                            </span>
-                          </label>
-                        </div>
+                      <div className="flex flex-wrap gap-2">
                         {!company.deleted && (
-                          <button
-                            onClick={() => handleDeleteCompany(company.id)}
-                            className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded"
-                          >
-                            Delete
-                          </button>
+                          <>
+                            <Link
+                              href={`/control_admin/company/${company.id}`}
+                              className="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-2 px-4 rounded"
+                            >
+                              View Events
+                            </Link>
+                            <Link
+                              href={`/control_admin/company/${company.id}`}
+                              className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-semibold py-2 px-4 rounded"
+                            >
+                              Edit
+                            </Link>
+                            <div className="flex items-center">
+                              <label className="inline-flex items-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  className="sr-only peer"
+                                  checked={company.status !== 'disabled'}
+                                  onChange={() => handleToggleCompanyStatus(company.id, company.status || 'enabled')}
+                                />
+                                <div className={`relative w-11 h-6 ${company.status === 'disabled' ? 'bg-gray-200' : 'bg-blue-600'} rounded-full peer after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${company.status !== 'disabled' ? 'after:translate-x-full' : ''}`}></div>
+                                <span className="ms-3 text-sm font-medium text-gray-900">
+                                  {company.status === 'disabled' ? 'Disabled' : 'Enabled'}
+                                </span>
+                              </label>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteCompany(company.id)}
+                              className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded"
+                            >
+                              Delete
+                            </button>
+                          </>
                         )}
                         {company.deleted && (
                           <button

@@ -67,7 +67,7 @@ export default function CompanyDashboard() {
   const handleDeleteEvent = async (eventId: string) => {
     if (!session?.user?.name) return;
     
-    if (!confirm('هل أنت متأكد من أنك تريد حذف هذا الحدث؟ لن يتم حذفه نهائيًا، بل سيتم إخفاؤه فقط.')) {
+    if (!confirm('Are you sure you want to mark this event as deleted? It will be hidden from users.')) {
       return;
     }
     
@@ -94,7 +94,7 @@ export default function CompanyDashboard() {
   const handleRestoreEvent = async (eventId: string) => {
     if (!session?.user?.name) return;
     
-    if (!confirm('هل أنت متأكد من أنك تريد استعادة هذا الحدث؟')) {
+    if (!confirm('Are you sure you want to restore this event? It will be visible to users again.')) {
       return;
     }
     
@@ -212,7 +212,7 @@ export default function CompanyDashboard() {
                 onClick={() => setShowDeleted(!showDeleted)}
                 className={`py-2 px-4 rounded ${showDeleted ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
               >
-                {showDeleted ? 'إخفاء المحذوفة' : 'عرض المحذوفة'}
+                {showDeleted ? 'Hide Deleted' : 'Show Deleted'}
               </button>
               <Link
                 href="/control_comp/add-event"
@@ -241,8 +241,8 @@ export default function CompanyDashboard() {
                 {events
                   .filter(event => showDeleted ? event.deleted : !event.deleted)
                   .map((event) => (
-                  <li key={event.id} className={`px-6 py-4 flex items-center justify-between ${event.deleted ? 'bg-gray-100' : ''}`}>
-                    <div className="flex items-center">
+                  <li key={event.id} className={`flex flex-col md:flex-row md:items-center justify-between px-6 py-4 ${event.deleted ? 'bg-gray-100' : ''}`}>
+                    <div className="flex items-center mb-4 md:mb-0">
                       {event.image ? (
                         <div className="h-16 w-16 mr-4 relative">
                           <Image
@@ -262,7 +262,7 @@ export default function CompanyDashboard() {
                       <div>
                         <h3 className="text-lg font-medium text-gray-900">
                           {event.name}
-                          {event.deleted && <span className="ml-2 text-sm text-red-600 font-normal">(محذوف)</span>}
+                          {event.deleted && <span className="ml-2 text-sm text-red-600 font-normal">(Deleted)</span>}
                         </h3>
                         <div className="flex items-center">
                           <p className="text-sm text-gray-500 mr-2">
@@ -279,7 +279,7 @@ export default function CompanyDashboard() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex space-x-2">
+                    <div className="flex flex-wrap gap-2">
                       {!event.deleted && (
                         <>
                           <button
@@ -315,7 +315,7 @@ export default function CompanyDashboard() {
                           onClick={() => handleRestoreEvent(event.id)}
                           className="bg-green-100 hover:bg-green-200 text-green-800 font-semibold py-2 px-4 rounded"
                         >
-                          استعادة
+                          Restore
                         </button>
                       )}
                     </div>
