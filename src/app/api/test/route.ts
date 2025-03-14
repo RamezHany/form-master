@@ -33,6 +33,12 @@ interface TestResponse {
   };
 }
 
+// Define a custom error type
+interface ApiError extends Error {
+  code?: string;
+  status?: number;
+}
+
 // GET /api/test - Test API endpoint
 export async function GET(request: NextRequest) {
   try {
@@ -69,17 +75,19 @@ export async function GET(request: NextRequest) {
               rowCount: eventData.length,
               headers: eventData[0]
             };
-          } catch (error: any) {
+          } catch (error: unknown) {
+            const apiError = error as ApiError;
             response.results.event = {
               found: false,
-              error: error.message
+              error: apiError.message || 'Unknown error occurred'
             };
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const apiError = error as ApiError;
         response.results.company = {
           found: false,
-          error: error.message
+          error: apiError.message || 'Unknown error occurred'
         };
       }
     }
@@ -96,20 +104,22 @@ export async function GET(request: NextRequest) {
           status: row[5] || 'enabled'
         }))
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
       response.results.companies = {
         found: false,
-        error: error.message
+        error: apiError.message || 'Unknown error occurred'
       };
     }
     
     return NextResponse.json(response);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const apiError = error as ApiError;
     return NextResponse.json(
       { 
         status: 'error',
-        message: error.message,
-        stack: error.stack
+        message: apiError.message || 'Unknown error occurred',
+        stack: apiError.stack
       },
       { status: 500 }
     );
