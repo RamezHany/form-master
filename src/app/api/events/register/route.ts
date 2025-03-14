@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         const status = company[5] || 'enabled';
         if (status === 'disabled') {
           return NextResponse.json(
-            { error: 'Company is disabled' },
+            { error: 'Company is disabled, registration is not available' },
             { status: 403 }
           );
         }
